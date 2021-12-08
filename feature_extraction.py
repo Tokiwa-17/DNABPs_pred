@@ -1,4 +1,5 @@
 import numpy as np
+from feature_selection.xgboost import Feature_selection_xgboost
 
 cp_13 = ['MF', 'IL', 'V', 'A', 'C', 'WYQHP', 'G', 'T', 'S', 'N', 'RK', 'D', 'E']
 cp_14 = ['EIMV', 'L', 'F', 'WY', 'G', 'P', 'C', 'A', 'S', 'T', 'N', 'HRKQ', 'E', 'D']
@@ -43,55 +44,71 @@ class PseAAC:
         return self.vector
 
 class Feature_extraction:
-    def __init__(self, train_positive, train_negative, nc=20, distance=3, cp=cp_20):
+    def __init__(self, positive, negative, nc=20, distance=3, cp=cp_20):
         # list of sequence
-        self.train_positive = train_positive
-        self.train_negative = train_negative
+        self.positive = positive
+        self.negative = negative
         self.nc = nc
         self.distance = distance
         self.cp = cp
         self.dimension = self.nc + self.nc ** 2 * self.distance
-        self.train_positive_vector = np.zeros((len(train_positive), self.dimension))
-        self.train_negative_vector = np.zeros((len(train_negative), self.dimension))
+        self.positive_vector = np.zeros((len(positive), self.dimension))
+        self.negative_vector = np.zeros((len(negative), self.dimension))
+        self.positive_labels = np.ones(len(positive))
+        self.negative_labels = -1 * np.ones(len(negative))
+        self.dataset = None
+        self.labels = None
 
     def construct_training_matrix(self):
-        for idx, seq in enumerate(self.train_positive):
+        for idx, seq in enumerate(self.positive):
             pseacc = PseAAC(seq, self.nc, self.distance, self.cp)
-            self.train_positive_vector[idx] = np.array(pseacc.construct_feature_vector())
+            self.positive_vector[idx] = np.array(pseacc.construct_feature_vector())
 
-        for idx, seq in enumerate(self.train_negative):
+        for idx, seq in enumerate(self.negative):
             pseacc = PseAAC(seq, self.nc, self.distance, self.cp)
-            self.train_negative_vector[idx] = np.array(pseacc.construct_feature_vector())
+            self.negative_vector[idx] = np.array(pseacc.construct_feature_vector())
 
-        print(f'training_dataset(pos) size: {self.train_positive_vector.shape}')
-        print(f'training_dataset(neg) size: {self.train_negative_vector.shape}')
+        print(f'dataset(pos) size: {self.positive_vector.shape}')
+        print(f'dataset(neg) size: {self.negative_vector.shape}')
+        self.dataset = np.concatenate((self.positive_vector,
+                                       self.negative_vector), axis=0)
+        self.labels = np.concatenate((self.positive_labels, self.negative_labels))
+        return self.dataset, self.labels
 
+def read_dataset(filename):
+    dataset = []
+    with open(filename) as f:
+        for line in f.readlines():
+            if line[0]  == '>':
+                pass
+            else:
+                dataset.append(line.strip())
+    return dataset
 
 if __name__ == '__main__':
-    train_positive = []
-    with open('./dataset/PDB1075/sequence/positive.txt') as f:
-        for line in f.readlines():
-            if line[0] == '>':
-                pass
-            else:
-                #print(line)
-                train_positive.append(line.strip())
-    train_negative = []
-    with open('./dataset/PDB1075/sequence/negative.txt') as f:
-        for line in f.readlines():
-            if line[0] == '>':
-                pass
-            else:
-                #print(line)
-                train_negative.append(line.strip())
+    train_positive = read_dataset('./dataset/PDB1075/sequence/positive.txt')
+    train_negative = read_dataset('./dataset/PDB1075/sequence/negative.txt')
+    test_positive = read_dataset('./dataset/PDB186/sequence/positive.txt')
+    test_negative = read_dataset('./dataset/PDB186/sequence/negative.txt')
 
     nc = 20
     distance = 3
     cp = cp_20
 
-    feature = Feature_extraction(train_positive, train_negative, nc, distance, cp)
-    feature.construct_training_matrix()
+    # represent training dataset
+    feature_train = Feature_extraction(train_positive, train_negative, nc, distance, cp)
+    X_train, y_train = feature_train.construct_training_matrix()
+
+    # represent test dataset
+    feature_test = Feature_extraction(test_positive, test_negative, nc, distance, cp)
+    X_test, y_test = feature_test.construct_training_matrix()
+
     print("feature extract successfully")
 
+    # feature selection
+    feature_selection = Feature_selection_xgboost(X_train, y_train, X_test, y_test)
+    feature_selection.compute_accuracy()
+    print('#############################################')
+    feature_selection.select_features()
 
 
