@@ -1,5 +1,8 @@
 import numpy as np
 from feature_selection.xgboost import Feature_selection_xgboost
+from sklearn.model_selection import train_test_split
+from kernel_SVM import SVM
+from Random_Forest import RF
 
 cp_13 = ['MF', 'IL', 'V', 'A', 'C', 'WYQHP', 'G', 'T', 'S', 'N', 'RK', 'D', 'E']
 cp_14 = ['EIMV', 'L', 'F', 'WY', 'G', 'P', 'C', 'A', 'S', 'T', 'N', 'HRKQ', 'E', 'D']
@@ -99,6 +102,9 @@ if __name__ == '__main__':
     feature_train = Feature_extraction(train_positive, train_negative, nc, distance, cp)
     X_train, y_train = feature_train.construct_training_matrix()
 
+    # split original training dataset to training dataset and validation dataset.
+    X_train, X_validation, y_train, y_validation = train_test_split(X_train, y_train, test_size=0.2, shuffle=True)
+
     # represent test dataset
     feature_test = Feature_extraction(test_positive, test_negative, nc, distance, cp)
     X_test, y_test = feature_test.construct_training_matrix()
@@ -108,7 +114,15 @@ if __name__ == '__main__':
     # feature selection
     feature_selection = Feature_selection_xgboost(X_train, y_train, X_test, y_test)
     feature_selection.compute_accuracy()
-    print('#############################################')
-    feature_selection.select_features()
 
+    X_train = feature_selection.select_features_by_thresh(X_train)
+    X_test = feature_selection.select_features_by_thresh(X_test)
+
+    # rbf kernel SVM classification
+    svm = SVM(X_train, y_train, X_test, y_test)
+    svm.predict()
+
+    # random forest classification
+    rf = RF(X_train, y_train, X_test, y_test)
+    rf.predict()
 
