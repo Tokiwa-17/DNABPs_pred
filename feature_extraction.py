@@ -3,6 +3,7 @@ from feature_selection.xgboost import Feature_selection_xgboost
 from sklearn.model_selection import train_test_split
 from kernel_SVM import SVM
 from Random_Forest import RF
+from handcraft import Handcraft
 
 cp_13 = ['MF', 'IL', 'V', 'A', 'C', 'WYQHP', 'G', 'T', 'S', 'N', 'RK', 'D', 'E']
 cp_14 = ['EIMV', 'L', 'F', 'WY', 'G', 'P', 'C', 'A', 'S', 'T', 'N', 'HRKQ', 'E', 'D']
@@ -88,11 +89,46 @@ def read_dataset(filename):
                 dataset.append(line.strip())
     return dataset
 
+def read_features(filename):
+    handcraft_features = np.loadtxt(filename)
+    return handcraft_features
+
+
 if __name__ == '__main__':
     train_positive = read_dataset('./dataset/PDB1075/sequence/positive.txt')
     train_negative = read_dataset('./dataset/PDB1075/sequence/negative.txt')
     test_positive = read_dataset('./dataset/PDB186/sequence/positive.txt')
     test_negative = read_dataset('./dataset/PDB186/sequence/negative.txt')
+
+    # handcraft feature
+
+    with open('positive_train.txt', 'w+') as f:
+        for seq in train_positive:
+            handcraft = Handcraft(seq)
+            hydrophobic, hydrophilic, positive, negative = handcraft.get_attribute()
+            target = str(hydrophobic) + ' ' + str(hydrophilic) + ' ' + str(positive) + ' ' + str(negative) + '\n'
+            f.write(target)
+
+    with open('negative_train.txt', 'w+') as f:
+        for seq in train_negative:
+            handcraft = Handcraft(seq)
+            hydrophobic, hydrophilic, positive, negative = handcraft.get_attribute()
+            target = str(hydrophobic) + ' ' + str(hydrophilic) + ' ' + str(positive) + ' ' + str(negative) + '\n'
+            f.write(target)
+
+    with open('positive_test.txt', 'w+') as f:
+        for seq in test_positive:
+            handcraft = Handcraft(seq)
+            hydrophobic, hydrophilic, positive, negative = handcraft.get_attribute()
+            target = str(hydrophobic) + ' ' + str(hydrophilic) + ' ' + str(positive) + ' ' + str(negative) + '\n'
+            f.write(target)
+
+    with open('negative_test.txt', 'w+') as f:
+        for seq in test_negative:
+            handcraft = Handcraft(seq)
+            hydrophobic, hydrophilic, positive, negative = handcraft.get_attribute()
+            target = str(hydrophobic) + ' ' + str(hydrophilic) + ' ' + str(positive) + ' ' + str(negative) + '\n'
+            f.write(target)
 
     nc = 20
     distance = 3
@@ -102,12 +138,22 @@ if __name__ == '__main__':
     feature_train = Feature_extraction(train_positive, train_negative, nc, distance, cp)
     X_train, y_train = feature_train.construct_training_matrix()
 
+    # add handcraft features
+    train_positive_handcraft = read_features('positive_train.txt')
+    train_negative_handcraft = read_features('negative_train.txt')
+    train_handcraft = np.concatenate((train_positive_handcraft, train_negative_handcraft), 0) * 3
+    X_train = np.concatenate((X_train, train_handcraft), 1)
+
     # split original training dataset to training dataset and validation dataset.
     X_train, X_validation, y_train, y_validation = train_test_split(X_train, y_train, test_size=0.2, shuffle=True)
 
     # represent test dataset
     feature_test = Feature_extraction(test_positive, test_negative, nc, distance, cp)
     X_test, y_test = feature_test.construct_training_matrix()
+    test_positive_handcraft = read_features('positive_test.txt')
+    test_negative_handcraft = read_features('negative_test.txt')
+    test_handcraft = np.concatenate((test_positive_handcraft, test_negative_handcraft), 0) * 3
+    X_test = np.concatenate((X_test, test_handcraft), 1)
 
     print("feature extract successfully")
 

@@ -1,5 +1,6 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from evaluation import Evaluation
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import GridSearchCV
 import numpy as np
@@ -31,6 +32,7 @@ class RF:
         plt.show()
         '''
         # 对max_depth调参
+        '''
         rfc = RandomForestClassifier(n_estimators=121, random_state=90)
         param_grid = {'max_depth': np.arange(1, 20)}
         grid_search_2 = GridSearchCV(rfc, param_grid, cv=10)
@@ -38,11 +40,26 @@ class RF:
         best_param = grid_search_2.best_params_
         best_score = grid_search_2.best_score_
         print(f'best_param:{best_param}, best_score:{best_score}')
+        '''
+        # 对max_features调参
+        '''param_grid = {'max_features': np.arange(5, 201, 10)}
 
-        self.rf = RandomForestClassifier(n_estimators=121)
+        rfc = RandomForestClassifier(n_estimators=121
+                                     , random_state=90
+                                     , max_depth=11)
+        grid_search_3 = GridSearchCV(rfc, param_grid, cv=10)
+        grid_search_3.fit(self.X_train, self.y_train)
+        best_param = grid_search_3.best_params_
+        best_score = grid_search_3.best_score_
+        print(best_param, best_score)
+        '''
+        #self.rf = RandomForestClassifier(n_estimators=121, max_depth=11, max_features=175)
+        self.rf = RandomForestClassifier()
         self.rf.fit(self.X_train, self.y_train)
 
     def predict(self):
         y_pred = self.rf.predict(self.X_test)
+        evaluation = Evaluation(y_pred, self.y_test)
+        evaluation.compute_metrics()
         accuracy = accuracy_score(self.y_test, y_pred)
-        print(f'Accuracy of using Random Forest:{accuracy}')
+        print(f'Accuracy of using Random Forest:{accuracy}%')

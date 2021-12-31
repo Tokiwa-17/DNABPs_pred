@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 sklearn = "*"
 xgboost = "*"
+matplotlib = "*"
 
 [dev-packages]
 

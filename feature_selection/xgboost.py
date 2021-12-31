@@ -12,13 +12,14 @@ class Feature_selection_xgboost:
         self.y_pred = None
         self.model = XGBClassifier()
         self.thresholds = None
-        self.selected_thresh = 0.000779
+        #self.selected_thresh = 0.000779
+        self.selected_thresh = 0.00022
 
     def compute_accuracy(self):
         self.model.fit(self.X_train, self.y_train)
         self.y_pred = self.model.predict(self.X_test)
         accuracy = accuracy_score(self.y_test, self.y_pred)
-        print(f'Accuracy of using XGboost: {accuracy * 100.0}%')
+        print(f'Accuracy of using XGboost: {accuracy * 100.0}%\n')
         # print(f'importance of standard amino acids:{self.model.feature_importances_[:20]}')
         self.thresholds = np.sort(self.model.feature_importances_)
 
